@@ -30,14 +30,15 @@ def rank_import_candidates(candidates: list[dict], budget: ImportBudget, default
         if price <= 0 or unit_cost <= 0:
             continue
 
+        ml_fee = candidate.get("marketplace_fee_amount")
         scenario = SourcingScenario(
             unit_cost=unit_cost,
             international_freight_per_unit=float(candidate.get("international_freight_per_unit", default_scenario.get("international_freight_per_unit", 0))),
             import_tax_pct=float(candidate.get("import_tax_pct", default_scenario.get("import_tax_pct", 0))),
             domestic_cost_per_unit=float(candidate.get("domestic_cost_per_unit", default_scenario.get("domestic_cost_per_unit", 0))),
             other_cost_per_unit=float(candidate.get("other_cost_per_unit", default_scenario.get("other_cost_per_unit", 0))),
-            marketplace_fee_pct=float(candidate.get("marketplace_fee_pct", default_scenario.get("marketplace_fee_pct", 0))),
-            fixed_marketplace_fee=float(candidate.get("fixed_marketplace_fee", default_scenario.get("fixed_marketplace_fee", 0))),
+            marketplace_fee_pct=0 if ml_fee is not None else float(candidate.get("marketplace_fee_pct", default_scenario.get("marketplace_fee_pct", 0))),
+            fixed_marketplace_fee=float(ml_fee) if ml_fee is not None else float(candidate.get("fixed_marketplace_fee", default_scenario.get("fixed_marketplace_fee", 0))),
             shipping_cost_per_unit=float(candidate.get("shipping_cost_per_unit", default_scenario.get("shipping_cost_per_unit", 0))),
         )
         unit = economics(price, scenario)
@@ -49,7 +50,7 @@ def rank_import_candidates(candidates: list[dict], budget: ImportBudget, default
         revenue = units * price
         profit = units * unit["profit"]
         capital_remaining = budget.budget - invested
-        radar_score = float(candidate.get("score") or 0)
+        radar_score = float(candidate.get("radar_score") or candidate.get("score") or 0)
         roi = profit / invested * 100 if invested > 0 else 0
 
         ranked.append({
@@ -59,6 +60,8 @@ def rank_import_candidates(candidates: list[dict], budget: ImportBudget, default
             "permalink": candidate.get("permalink"),
             "radar_score": round(radar_score, 2),
             "selling_price": price,
+            "marketplace_fee": unit["marketplace_fee"],
+            "marketplace_fee_source": candidate.get("marketplace_fee_source", "manual"),
             "unit_landed_cost": unit["landed_cost"],
             "units": units,
             "capital_invested": round(invested, 2),

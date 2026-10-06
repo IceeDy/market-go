@@ -22,3 +22,27 @@ def listing_prices(
         params["shipping_mode"] = shipping_mode
     data = client.get(f"/sites/{client.site}/listing_prices", params=params)
     return data if isinstance(data, list) else [data]
+
+
+def resolve_listing_cost(
+    client: MercadoLivre,
+    category_id: str,
+    price: float,
+    currency_id: str = "BRL",
+    listing_type_id: str = "gold_special",
+    logistic_type: str | None = None,
+    shipping_mode: str | None = None,
+) -> dict | None:
+    rows = listing_prices(
+        client=client,
+        category_id=category_id,
+        price=price,
+        currency_id=currency_id,
+        listing_type_id=listing_type_id,
+        logistic_type=logistic_type,
+        shipping_mode=shipping_mode,
+    )
+    for row in rows:
+        if row.get("listing_type_id") == listing_type_id:
+            return row
+    return rows[0] if rows else None
