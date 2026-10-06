@@ -39,6 +39,15 @@ class MercadoLivre:
                     out[row["id"]] = row["body"]
         return out
 
+    def sale_price(self, item_id):
+        return self.get(f"/items/{item_id}/sale_price", params={"context": "channel_marketplace"}).get("amount")
+
+    def price_to_win(self, item_id):
+        return self.get(
+            f"/items/{item_id}/price_to_win",
+            params={"siteId": self.site, "version": "v2"},
+        )
+
     def trends(self, category=None):
         path = f"/trends/{self.site}" + (f"/{category}" if category else "")
         data = self.get(path)
