@@ -5,9 +5,11 @@ from .core import MercadoLivre
 from .db import init_db
 from .service import collect_category, persist_best_sellers, persist_search, radar_opportunities, trending_opportunities
 from .economics_api import router as economics_router
+from .import_ranking_api import router as import_ranking_router
 
 app = FastAPI(title="Market Radar", version="0.5.0")
 app.include_router(economics_router)
+app.include_router(import_ranking_router)
 
 @app.on_event("startup")
 def startup():
