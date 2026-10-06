@@ -30,3 +30,14 @@ class BestSellerSnapshot(Base):
     element_type: Mapped[str] = mapped_column(String(32))
     captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
     __table_args__ = (UniqueConstraint("product_id", "category_id", "position", "captured_at", name="uq_best_seller_snapshot"),)
+
+class CompetitionSnapshot(Base):
+    __tablename__ = "competition_snapshots"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    product_id: Mapped[int] = mapped_column(index=True)
+    item_id: Mapped[str] = mapped_column(String(64), index=True)
+    status: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    current_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    price_to_win: Mapped[float | None] = mapped_column(Float, nullable=True)
+    boosts: Mapped[str | None] = mapped_column(Text, nullable=True)
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
