@@ -11,10 +11,29 @@ from market_radar.db import init_db
 from market_radar.import_ranking_api import RadarImportRequest, import_ranking_from_radar
 from market_radar.service import persist_best_sellers, persist_search, trending_opportunities
 
+
+def _load_streamlit_config():
+    """Load Mercado Livre credentials from Streamlit Secrets or environment."""
+    token = os.getenv("ML_ACCESS_TOKEN", "")
+    if not token:
+        try:
+            token = str(st.secrets.get("ML_ACCESS_TOKEN", ""))
+        except Exception:
+            token = ""
+    if token:
+        os.environ["ML_ACCESS_TOKEN"] = token
+    return token
+
+
+ML_ACCESS_TOKEN = _load_streamlit_config()
+
 st.set_page_config(page_title="Market Radar", layout="wide")
 st.title("Market Radar")
 st.caption("v0.5 — product hunting + Opportunity Radar + Import Ranking")
 init_db()
+
+if not ML_ACCESS_TOKEN:
+    st.sidebar.warning("Mercado Livre não configurado. Adicione ML_ACCESS_TOKEN em Settings → Secrets no Streamlit Cloud.")
 
 c = MercadoLivre(
     os.getenv("ML_ACCESS_TOKEN"),
@@ -31,7 +50,18 @@ if mode == "Busca":
     q = st.sidebar.text_input("Produto", "organizador de cozinha")
     n = st.sidebar.slider("Itens", 5, 50, 20)
     if st.button("Pesquisar", type="primary"):
-        products = c.search(q, n)
+        if not ML_ACCESS_TOKEN:
+            st.error("Configure o secret ML_ACCESS_TOKEN no Streamlit Cloud antes de pesquisar.")
+            st.stop()
+        try:
+            products = c.search(q, n)
+        except Exception as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            if status == 401:
+                st.error("Mercado Livre rejeitou a autenticação (401). O ML_ACCESS_TOKEN está ausente, expirado ou inválido.")
+                st.stop()
+            st.error(f"Erro ao consultar o Mercado Livre: {exc}")
+            st.stop()
         persist_search(products)
         st.metric("Produtos coletados", len(products))
         st.dataframe(
